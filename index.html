@@ -2,23 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Black Hole Dissipation Laws — Scientific Dashboard</title>
+<title>Black Hole Dissipation — Educational Visualizer</title>
 
 <style>
     body {
         margin: 0;
-        background: #0c0c0c;
+        background: #0f0f0f;
         font-family: Arial, sans-serif;
-        color: #e6e6e6;
+        color: #eaeaea;
         overflow: hidden;
     }
 
     #header {
-        background: #111;
+        background: #121212;
         padding: 15px;
         text-align: center;
         border-bottom: 2px solid #333;
-        font-size: 26px;
+        font-size: 28px;
         font-weight: bold;
         letter-spacing: 1px;
     }
@@ -40,7 +40,7 @@
     #field {
         width: 95%;
         height: 95%;
-        border: 2px solid #333;
+        border: 2px solid #444;
         border-radius: 6px;
     }
 
@@ -52,23 +52,35 @@
 
     #lawTitle {
         font-size: 22px;
-        margin-bottom: 10px;
-        color: #4fb4ff;
+        margin-bottom: 8px;
+        color: #71c7ff;
     }
 
     #lawMeaning {
         font-size: 14px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         color: #cccccc;
-        line-height: 1.4;
+    }
+
+    #analogy {
+        font-size: 13px;
+        margin-bottom: 12px;
+        color: #9aff8a;
+        font-style: italic;
+    }
+
+    #bhMeaning {
+        font-size: 13px;
+        margin-bottom: 20px;
+        color: #ffcc6b;
     }
 
     #chartCanvas {
         width: 100%;
-        height: 200px;
+        height: 180px;
         border: 1px solid #333;
         border-radius: 4px;
-        background: #111;
+        background: #151515;
         margin-bottom: 20px;
     }
 
@@ -82,11 +94,12 @@
     .lawButton {
         padding: 8px;
         font-size: 14px;
-        background: #222;
+        background: #202020;
         border: 1px solid #444;
         border-radius: 4px;
         color: #ddd;
         cursor: pointer;
+        text-align: left;
     }
 
     .lawButton:hover {
@@ -94,9 +107,9 @@
     }
 
     .active {
-        background: #4fb4ff;
+        background: #71c7ff;
         color: #000;
-        border-color: #4fb4ff;
+        border-color: #71c7ff;
         font-weight: bold;
     }
 </style>
@@ -104,19 +117,21 @@
 
 <body>
 
-<div id="header">Black Hole Dissipation — Scientific Visualizer</div>
+<div id="header">Black Hole Dissipation — Educational Visualizer</div>
 
 <div id="layout">
 
-    <!-- FIELD ANIMATION -->
+    <!-- MAIN FIELD -->
     <div id="fieldWrapper">
         <canvas id="field"></canvas>
     </div>
 
-    <!-- INFORMATION PANEL -->
+    <!-- RIGHT PANEL -->
     <div id="infoPanel">
         <div id="lawTitle">Select a Law</div>
-        <div id="lawMeaning">Click a button below to visualize a dissipation law.</div>
+        <div id="lawMeaning">Click a law to learn what it means.</div>
+        <div id="analogy"></div>
+        <div id="bhMeaning"></div>
         <canvas id="chartCanvas"></canvas>
         <div id="buttonGrid"></div>
     </div>
@@ -124,190 +139,295 @@
 </div>
 
 <script>
-/* =============================================
-   BASIC FIELD SETUP
-============================================= */
+/* ============================================
+   EDUCATIONAL CONTENT
+============================================ */
+const laws = [
+    ["Gradient Energy Decay",
+     "Sharp edges smooth out.", 
+     "Like ironing wrinkles from clothes.",
+     "Black holes erase sharp distortions on their horizon."],
+
+    ["Gradient Energy² Decay",
+     "Strong slopes collapse quickly.",
+     "Like smoothing a sand pile.",
+     "Steep features vanish fastest around black holes."],
+
+    ["Curvature Decay",
+     "Bumps flatten.",
+     "Like flattening dough with a roller.",
+     "Black holes iron out bumps on their surface."],
+
+    ["Absolute Curvature Collapse",
+     "Large bending disappears.",
+     "Like smoothing a bent piece of plastic.",
+     "Horizon curvature dissipates to zero."],
+
+    ["Hypercurvature Collapse",
+     "Very fine wrinkles vanish.",
+     "Like removing tiny ripples on water.",
+     "Black holes kill tiny-scale geometry instantly."],
+
+    ["3rd-Order Curvature Collapse",
+     "Curvature changes also fade.",
+     "Like smoothing the *edges* of bumps.",
+     "Higher-order distortions vanish too."],
+
+    ["Divergence Collapse",
+     "Sources & sinks disappear.",
+     "Like sealing leaks in an air mattress.",
+     "Geometry flows become consistent on horizons."],
+
+    ["Divergence of Gradient",
+     "Flow inconsistencies collapse.",
+     "Like making water flow evenly.",
+     "Black-hole horizons eliminate uneven flow."],
+
+    ["Gradient × Divergence",
+     "Coupled irregularities fade.",
+     "Like fixing twists & leaks together.",
+     "BHs remove mixed distortions fast."],
+
+    ["Shear Damping",
+     "Twists unwind.",
+     "Like untwisting a towel.",
+     "Black holes remove rotational distortions."],
+
+    ["Total Variation Decay",
+     "Overall roughness reduces.",
+     "Like sanding wood.",
+     "Horizon roughness collapses."],
+
+    ["Potential Energy Decay",
+     "Stored energy drains away.",
+     "Like a bouncing ball losing height.",
+     "BHs lose geometric energy fast."],
+
+    ["Laplacian Energy Decay",
+     "Curvature strength shrinks.",
+     "Like flattening a bumpy surface.",
+     "Curved patches collapse."],
+
+    ["Spectral Hyperattenuation",
+     "High frequencies die first.",
+     "Like losing tiny details in a blur.",
+     "Black holes erase fine details instantly."],
+
+    ["Harmonic Mode Decay",
+     "High modes fade fastest.",
+     "Like muffling high notes.",
+     "High-frequency horizon modes vanish first."],
+
+    ["Mass Relaxation",
+     "Average value stabilizes.",
+     "Like water finding level.",
+     "BHs stabilize their horizon radius."],
+
+    ["Curvature–Gradient Coupling",
+     "Bend + slope effects fade.",
+     "Like fixing both tilt and bumps.",
+     "Complex distortions collapse together."],
+
+    ["Curvature Minimization",
+     "Curves flatten.",
+     "Like smoothing clay.",
+     "Black holes drive curvature to zero."],
+
+    ["Gradient Minimization",
+     "Slopes reduce.",
+     "Like leveling a field.",
+     "BHs eliminate all slopes."],
+
+    ["Unified Dissipation",
+     "Everything smooths.",
+     "Like erasing a chalkboard.",
+     "All complexity around BHs collapses."]
+];
+
+/* ============================================
+   FIELD + COLOR MAP SETUP
+============================================ */
 const N = 100;
 const DIFF = 0.18;
 
-let A = [];
-for (let i = 0; i < N; i++) {
-    A[i] = [];
-    for (let j = 0; j < N; j++) {
-        A[i][j] = 1.3 * Math.sin(6*i/N*Math.PI) * Math.cos(7*j/N*Math.PI)
-                + 0.7*(Math.random()*2-1);
-    }
+let A = Array.from({length:N},()=>Array.from({length:N},
+  ()=>1.2*Math.sin(Math.random()*6)+Math.random()*0.5));
+
+/* Viridis colormap (simplified) */
+function viridis(v){
+    const colors=[
+        [68,1,84],[71,44,122],[59,81,139],[44,113,142],
+        [33,144,141],[39,173,129],[92,200,99],[170,220,50],[253,231,37]
+    ];
+    v=Math.min(1,Math.max(0,(v+1)/2));
+    const i=Math.floor(v*(colors.length-1));
+    const a=colors[i], b=colors[i+1]||a;
+    const t=v*(colors.length-1)-i;
+    return [
+        Math.round(a[0]*(1-t)+b[0]*t),
+        Math.round(a[1]*(1-t)+b[1]*t),
+        Math.round(a[2]*(1-t)+b[2]*t)
+    ];
 }
 
-const fieldCanvas = document.getElementById("field");
-const ctxField = fieldCanvas.getContext("2d");
-
-function lap(A,i,j){
-    return A[(i-1+N)%N][j] + A[(i+1)%N][j] +
-           A[i][(j-1+N)%N] + A[i][(j+1)%N] -
-           4*A[i][j];
-}
-
+/* Metrics */
 function gradMag(A){
     let s=0;
-    for (let i=0;i<N;i++){
+    for (let i=0;i<N;i++)
         for (let j=0;j<N;j++){
-            const dx = A[(i+1)%N][j] - A[i][j];
-            const dy = A[i][(j+1)%N] - A[i][j];
-            s += Math.sqrt(dx*dx + dy*dy);
+            const dx=A[(i+1)%N][j]-A[i][j];
+            const dy=A[i][(j+1)%N]-A[i][j];
+            s+=Math.sqrt(dx*dx+dy*dy);
         }
-    }
     return s/(N*N);
 }
 
 function curvatureMag(A){
     let s=0;
     for (let i=0;i<N;i++)
-        for (let j=0;j<N;j++)
-            s += Math.abs(lap(A,i,j));
+        for (let j=0;j<N;j++){
+            s+=Math.abs(A[(i-1+N)%N][j]+A[(i+1)%N][j]+
+                        A[i][(j-1+N)%N]+A[i][(j+1)%N]-4*A[i][j]);
+        }
     return s/(N*N);
 }
 
 function shearMag(A){
     let s=0;
-    for (let i=0;i<N;i++){
+    for (let i=0;i<N;i++)
         for (let j=0;j<N;j++){
-            const dx1 = A[(i+1)%N][j]-A[i][j];
-            const dx2 = A[i][j]-A[(i-1+N)%N][j];
-            s += Math.abs(dx1-dx2);
+            const dx1=A[(i+1)%N][j]-A[i][j];
+            const dx2=A[i][j]-A[(i-1+N)%N][j];
+            s+=Math.abs(dx1-dx2);
         }
-    }
     return s/(N*N);
 }
 
-/* =============================================
-   20 LAWS
-============================================= */
-const laws = [
-    ["Gradient Energy Decay", "Sharp edges fade as the field smooths.", (A)=>gradMag(A)],
-    ["Gradient Energy² Decay", "Strong slopes collapse faster.", (A)=>gradMag(A)**2],
-    ["Curvature Decay", "Bumps flatten over time.", (A)=>curvatureMag(A)],
-    ["Absolute Curvature Collapse", "Large bending disappears.", (A)=>curvatureMag(A)],
-    ["Hypercurvature Collapse", "Extremely fine wrinkles vanish.", (A)=>curvatureMag(A)],
-    ["3rd-Order Curvature Collapse", "Changes in curvature also fade.", (A)=>curvatureMag(A)],
-    ["Divergence Collapse", "Sources and sinks disappear.", (A)=>curvatureMag(A)],
-    ["Divergence of Gradient", "Flow inconsistencies collapse.", (A)=>curvatureMag(A)],
-    ["Gradient×Divergence", "Coupled irregularities vanish.", (A)=>gradMag(A)*curvatureMag(A)],
-    ["Shear Damping", "Twisting/stretching decays.", (A)=>shearMag(A)],
-    ["Total Variation Decay", "Overall roughness shrinks.", (A)=>gradMag(A)],
-    ["Potential Energy Decay", "Energy drains from the system.", (A)=>gradMag(A)],
-    ["Laplacian Energy Decay", "Curvature strength collapses.", (A)=>curvatureMag(A)],
-    ["Spectral Hyperattenuation", "High-frequency noise dies fastest.", (A)=>gradMag(A)],
-    ["Harmonic Mode Decay", "High modes decay quicker.", (A)=>gradMag(A)],
-    ["Mass Relaxation", "Average field value stabilizes.", (A)=>0],
-    ["Curvature–Gradient Coupling", "Bend + slope effects fade.", (A)=>gradMag(A)*curvatureMag(A)],
-    ["Curvature Minimization", "Curves flatten naturally.", (A)=>curvatureMag(A)],
-    ["Gradient Minimization", "Slopes reduce toward zero.", (A)=>gradMag(A)],
-    ["Unified Dissipation Law", "All complexity collapses.", (A)=>gradMag(A)+curvatureMag(A)]
-];
+/* map law → metric */
+function metricFor(l){
+    const [title,desc,analogy,bh] = laws[l];
+    if (l===0) return gradMag(A);
+    if (l===1) return gradMag(A)**2;
+    if (l===2 || l===3 || l===4 || l===5 || l===12 || l===17) return curvatureMag(A);
+    if (l===6 || l===7) return curvatureMag(A);
+    if (l===8 || l===16 || l===19) return gradMag(A)*curvatureMag(A);
+    if (l===9) return shearMag(A);
+    if (l===10 || l===11 || l===14 || l===18) return gradMag(A);
+    return gradMag(A)+curvatureMag(A);
+}
 
+/* ============================================
+   UI + BUTTONS
+============================================ */
 let selectedLaw = 0;
 
-/* Generate buttons */
 const buttonGrid = document.getElementById("buttonGrid");
-laws.forEach((law, idx)=>{
-    let b = document.createElement("button");
-    b.textContent = law[0];
-    b.className = "lawButton";
-    b.onclick = () => selectLaw(idx, b);
-    buttonGrid.appendChild(b);
+laws.forEach((law, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "lawButton";
+    btn.textContent = law[0];
+    btn.onclick = () => selectLaw(idx, btn);
+    buttonGrid.appendChild(btn);
 });
 buttonGrid.children[0].classList.add("active");
 
-/* =============================================
-   SELECTION HANDLING
-============================================= */
-function selectLaw(i, btn){
-    selectedLaw = i;
-    document.getElementById("lawTitle").textContent = laws[i][0];
-    document.getElementById("lawMeaning").textContent = laws[i][1];
+function selectLaw(i,btn){
+    selectedLaw=i;
+
+    document.getElementById("lawTitle").textContent=laws[i][0];
+    document.getElementById("lawMeaning").textContent=laws[i][1];
+    document.getElementById("analogy").textContent="Analogy: "+laws[i][2];
+    document.getElementById("bhMeaning").textContent="Black-hole meaning: "+laws[i][3];
 
     [...buttonGrid.children].forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
+
+    dataPoints=[];
 }
 
-/* =============================================
-   CHART SETUP
-============================================= */
-const chartCanvas = document.getElementById("chartCanvas");
-const ctxChart = chartCanvas.getContext("2d");
-let dataPoints = [];
+/* ============================================
+   CHART
+============================================ */
+const chartCanvas=document.getElementById("chartCanvas");
+const ctxChart=chartCanvas.getContext("2d");
+let dataPoints=[];
 
 function drawChart(){
     ctxChart.clearRect(0,0,chartCanvas.width,chartCanvas.height);
-    ctxChart.strokeStyle = "#4fb4ff";
-    ctxChart.lineWidth = 2;
+    ctxChart.strokeStyle="#71c7ff";
+    ctxChart.lineWidth=2;
     ctxChart.beginPath();
-
     for (let i=0;i<dataPoints.length;i++){
-        let x = (i / (dataPoints.length-1)) * chartCanvas.width;
-        let y = chartCanvas.height - (dataPoints[i]*chartCanvas.height);
+        const x=i/(dataPoints.length-1)*chartCanvas.width;
+        const y=chartCanvas.height-dataPoints[i]*chartCanvas.height;
         if (i===0) ctxChart.moveTo(x,y);
         else ctxChart.lineTo(x,y);
     }
-
     ctxChart.stroke();
 }
 
-/* =============================================
+/* ============================================
+   FIELD RENDERING
+============================================ */
+const fieldCanvas=document.getElementById("field");
+const ctxField=fieldCanvas.getContext("2d");
+
+function renderField(){
+    const W=fieldCanvas.width;
+    const H=fieldCanvas.height;
+
+    const img=ctxField.createImageData(W,H);
+    const d=img.data;
+
+    for (let x=0;x<W;x++){
+        for (let y=0;y<H;y++){
+            const i=Math.floor(x*N/W);
+            const j=Math.floor(y*N/H);
+
+            const rgb=viridis(A[i][j]);
+            const idx=(y*W+x)*4;
+            d[idx]=rgb[0];
+            d[idx+1]=rgb[1];
+            d[idx+2]=rgb[2];
+            d[idx+3]=255;
+        }
+    }
+    ctxField.putImageData(img,0,0);
+}
+
+/* ============================================
    MAIN LOOP
-============================================= */
-function update() {
+============================================ */
+function update(){
     let next=[];
     for (let i=0;i<N;i++){
         next[i]=[];
         for (let j=0;j<N;j++){
-            next[i][j] = A[i][j] + DIFF * lap(A,i,j);
+            const lap = A[(i-1+N)%N][j]+A[(i+1)%N][j]+
+                        A[i][(j-1+N)%N]+A[i][(j+1)%N]-4*A[i][j];
+            next[i][j] = A[i][j] + DIFF*lap;
         }
     }
-    A = next;
+    A=next;
 
-    /* metric for selected law */
-    const metric = laws[selectedLaw][2](A);
+    const metric = metricFor(selectedLaw);
     dataPoints.push(metric);
-    if (dataPoints.length > 200) dataPoints.shift();
-    drawChart();
+    if (dataPoints.length>200) dataPoints.shift();
 
+    drawChart();
     renderField();
+
     requestAnimationFrame(update);
 }
 
-function renderField(){
-    const W = fieldCanvas.width;
-    const H = fieldCanvas.height;
-    const img = ctxField.createImageData(W,H);
-    const d = img.data;
-
-    for (let x=0;x<W;x++){
-        for (let y=0;y<H;y++){
-            const i = Math.floor(x * N / W);
-            const j = Math.floor(y * N / H);
-            const v = A[i][j];
-
-            /* clean scientific colormap */
-            const c = Math.floor(128 + 80*v);
-            const idx = (y*W+x)*4;
-            d[idx]=d[idx+1]=d[idx+2]=c;
-            d[idx+3]=255;
-        }
-    }
-
-    ctxField.putImageData(img,0,0);
-}
-
-/* Resize canvas to fit */
+/* Resize handler */
 function resize(){
-    fieldCanvas.width = fieldCanvas.clientWidth;
-    fieldCanvas.height = fieldCanvas.clientHeight;
-    chartCanvas.width = chartCanvas.clientWidth;
-    chartCanvas.height = chartCanvas.clientHeight;
+    fieldCanvas.width=fieldCanvas.clientWidth;
+    fieldCanvas.height=fieldCanvas.clientHeight;
+    chartCanvas.width=chartCanvas.clientWidth;
+    chartCanvas.height=chartCanvas.clientHeight;
 }
-window.onresize = resize;
+window.onresize=resize;
 resize();
 
 update();
