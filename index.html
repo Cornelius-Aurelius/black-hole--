@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Black Hole Dissipation Visualizer</title>
+<style>
+    body {
+        margin: 0;
+        background: #000;
+        color: #fff;
+        font-family: Arial;
+        text-align: center;
+    }
+    #canvas {
+        margin-top: 20px;
+        border: 2px solid #444;
+    }
+    #stats {
+        margin-top: 15px;
+        font-size: 18px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Black Hole Dissipation Visualizer</h1>
+<canvas id="canvas" width="400" height="400"></canvas>
+
+<div id="stats">
+    <div>Gradient Energy: <span id="gradVal">0</span></div>
+    <div>Curvature Energy: <span id="curvVal">0</span></div>
+    <div>Total Variation: <span id="tvVal">0</span></div>
+</div>
+
+<script>
+// ==== SETTINGS ====
+const N = 200;          // Field resolution
+const DIFF = 0.22;      // Diffusion rate
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+// ==== FIELD INITIALISATION ====
+let A = [];
+for (let i = 0; i < N; i++) {
+    A[i] = [];
+    for (let j = 0; j < N; j++) {
+        A[i][j] = 
+            1.5*Math.sin(6*i/N*3.14) * Math.cos(7*j/N*3.14)
+            + 0.7*(Math.random()*2-1);
+    }
+}
+
+// ==== LAPLACIAN ====
+function laplacian(A, i, j) {
+    const up = A[(i - 1 + N) % N][j];
+    const down = A[(i + 1) % N][j];
+    const left = A[i][(j - 1 + N) % N];
+    const right = A[i][(j + 1) % N];
+    return up + down + left + right - 4 * A[i][j];
+}
+
+// ==== GRADIENT ENERGY ====
+function gradientEnergy(A) {
+    let sum = 0;
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+            const dx = A[(i + 1) % N][j] - A[i][j];
+            const dy = A[i][(j + 1) % N] - A[i][j];
+            sum += Math.sqrt(dx*dx + dy*dy);
+        }
+    }
+    return sum / (N*N);
+}
+
+// ==== CURVATURE ENERGY ====
+function curvatureEnergy(A) {
+    let sum = 0;
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+            sum += Math.abs(laplacian(A, i, j));
+        }
+    }
+    return sum / (N*N);
+}
+
+// ==== TOTAL VARIATION ====
+function totalVariation(A) {
+    return gradientEnergy(A);
+}
+
+// ==== RENDER FIELD ====
+function renderField(A) {
+    const img = ctx.createImageData(canvas.width, canvas.height);
+    const d = img.data;
+
+    for (let x = 0; x < canvas.width; x++) {
+        for (let y = 0; y < canvas.height; y++) {
+
+            const i = Math.floor(x * N / canvas.width);
+            const j = Math.floor(y * N / canvas.height);
+            const v = A[i][j];
+
+            // map field value → grayscale
+            const c = Math.floor(128 + 80 * v);
+            const idx = (y*canvas.width + x)*4;
+            d[idx] = d[idx+1] = d[idx+2] = c;
+            d[idx+3] = 255;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+}
+
+// ==== UPDATE LOOP ====
+function step() {
+    let next = [];
+    for (let i = 0; i < N; i++) {
+        next[i] = [];
+        for (let j = 0; j < N; j++) {
+            next[i][j] = A[i][j] + DIFF * laplacian(A, i, j);
+        }
+    }
+    A = next;
+
+    // Update stats
+    document.getElementById("gradVal").textContent = gradientEnergy(A).toFixed(4);
+    document.getElementById("curvVal").textContent = curvatureEnergy(A).toFixed(4);
+    document.getElementById("tvVal").textContent = totalVariation(A).toFixed(4);
+
+    // Render
+    renderField(A);
+
+    requestAnimationFrame(step);
+}
+
+step();
+</script>
+
+</body>
+</html>
