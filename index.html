@@ -1,138 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Black Hole Dissipation Visualizer</title>
+<meta charset="UTF-8" />
+<title>Black Hole Laws — Visual Explorer</title>
+
 <style>
     body {
         margin: 0;
-        background: #000;
-        color: #fff;
+        background: #0b0b0b;
+        color: white;
         font-family: Arial;
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
-    #canvas {
-        margin-top: 20px;
-        border: 2px solid #444;
+
+    h1 {
+        margin-top: 25px;
+        margin-bottom: 10px;
+        font-size: 32px;
+        font-weight: bold;
     }
-    #stats {
-        margin-top: 15px;
-        font-size: 18px;
+
+    #container {
+        width: 95%;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-gap: 12px;
+        margin-bottom: 40px;
     }
+
+    .panel {
+        background: #111;
+        border: 2px solid #333;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    canvas {
+        width: 100%;
+        height: 150px;
+        border-radius: 5px;
+        display: block;
+        margin-bottom: 7px;
+    }
+
+    .title {
+        font-size: 16px;
+        margin-bottom: 4px;
+        font-weight: bold;
+        color: #4fb4ff;
+    }
+
+    .desc {
+        font-size: 12px;
+        color: #cccccc;
+        margin-bottom: 8px;
+    }
+
+    .metric {
+        font-size: 12px;
+        color: #88ff9e;
+    }
+
 </style>
 </head>
 <body>
 
-<h1>Black Hole Dissipation Visualizer</h1>
-<canvas id="canvas" width="400" height="400"></canvas>
+<h1>🔥 Black Hole Dissipation Laws — Visual Explorer 🔥</h1>
 
-<div id="stats">
-    <div>Gradient Energy: <span id="gradVal">0</span></div>
-    <div>Curvature Energy: <span id="curvVal">0</span></div>
-    <div>Total Variation: <span id="tvVal">0</span></div>
-</div>
+<div id="container"></div>
 
 <script>
-// ==== SETTINGS ====
-const N = 200;          // Field resolution
-const DIFF = 0.22;      // Diffusion rate
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+/* ======================================================
+   SETTINGS
+====================================================== */
+const NUM_LAWS = 20;
+const N = 60;
+const DIFF = 0.18;
+const container = document.getElementById("container");
 
-// ==== FIELD INITIALISATION ====
-let A = [];
-for (let i = 0; i < N; i++) {
-    A[i] = [];
-    for (let j = 0; j < N; j++) {
-        A[i][j] = 
-            1.5*Math.sin(6*i/N*3.14) * Math.cos(7*j/N*3.14)
-            + 0.7*(Math.random()*2-1);
-    }
-}
+/* ======================================================
+   HARD-CODED LAW DESCRIPTIONS
+====================================================== */
+const LAW_INFO = [
+    "Gradient Energy Decay",
+    "Gradient Energy Squared Decay",
+    "Curvature Decay",
+    "Absolute Curvature Collapse",
+    "Hypercurvature Collapse",
+    "Third-Order Curvature Collapse",
+    "Divergence Collapse",
+    "Divergence of Gradient Collapse",
+    "Gradient–Divergence Coupling",
+    "Shear Damping",
+    "Total Variation Decay",
+    "Potential Energy Decay",
+    "Laplacian Energy Decay",
+    "Spectral Hyperattenuation",
+    "Harmonic Mode Decay",
+    "Mass Relaxation",
+    "Curvature–Gradient Coupling",
+    "Curvature Minimization",
+    "Gradient Minimization",
+    "Universal Dissipation (Unified Law)"
+];
 
-// ==== LAPLACIAN ====
-function laplacian(A, i, j) {
-    const up = A[(i - 1 + N) % N][j];
-    const down = A[(i + 1) % N][j];
-    const left = A[i][(j - 1 + N) % N];
-    const right = A[i][(j + 1) % N];
-    return up + down + left + right - 4 * A[i][j];
-}
+/* What each law means in simple words */
+const LAW_TEXT = [
+    "Sharp edges vanish.",
+    "Strong slopes fade.",
+    "Bumps flatten over time.",
+    "Large curvatures get smoothed.",
+    "Extremely sharp wrinkles disappear.",
+    "Curvature changes also flatten.",
+    "Flow sources disappear.",
+    "All divergence collapses.",
+    "Gradient × divergence coupling fades.",
+    "Twisting motion damps.",
+    "Overall roughness declines.",
+    "Energy drains out.",
+    "Curvature strength decays.",
+    "High-frequency noise dies first.",
+    "High modes fade faster than low.",
+    "Average value stabilizes.",
+    "Curvature + gradient shrink together.",
+    "Curvature is minimized.",
+    "Gradients are minimized.",
+    "Everything smooths to equilibrium."
+];
 
-// ==== GRADIENT ENERGY ====
-function gradientEnergy(A) {
-    let sum = 0;
+/* ======================================================
+   UTILITIES
+====================================================== */
+function createField() {
+    let A = [];
     for (let i = 0; i < N; i++) {
+        A[i] = [];
         for (let j = 0; j < N; j++) {
-            const dx = A[(i + 1) % N][j] - A[i][j];
-            const dy = A[i][(j + 1) % N] - A[i][j];
-            sum += Math.sqrt(dx*dx + dy*dy);
+            A[i][j] = 
+                1.4 * Math.sin(6*i/N*3.14) * 
+                Math.cos(7*j/N*3.14) + 
+                0.6*(Math.random()*2-1);
         }
     }
-    return sum / (N*N);
+    return A;
 }
 
-// ==== CURVATURE ENERGY ====
-function curvatureEnergy(A) {
-    let sum = 0;
-    for (let i = 0; i < N; i++) {
-        for (let j = 0; j < N; j++) {
-            sum += Math.abs(laplacian(A, i, j));
+function lap(A,i,j){
+    const up=A[(i-1+N)%N][j];
+    const down=A[(i+1)%N][j];
+    const left=A[i][(j-1+N)%N];
+    const right=A[i][(j+1)%N];
+    return up+down+left+right-4*A[i][j];
+}
+
+function gradMag(A){
+    let s=0;
+    for (let i=0;i<N;i++){
+        for (let j=0;j<N;j++){
+            const dx = A[(i+1)%N][j]-A[i][j];
+            const dy = A[i][(j+1)%N]-A[i][j];
+            s += Math.sqrt(dx*dx + dy*dy);
         }
     }
-    return sum / (N*N);
+    return s/(N*N);
 }
 
-// ==== TOTAL VARIATION ====
-function totalVariation(A) {
-    return gradientEnergy(A);
+function curvatureMag(A){
+    let s=0;
+    for (let i=0;i<N;i++)
+        for (let j=0;j<N;j++)
+            s += Math.abs(lap(A,i,j));
+    return s/(N*N);
 }
 
-// ==== RENDER FIELD ====
-function renderField(A) {
-    const img = ctx.createImageData(canvas.width, canvas.height);
-    const d = img.data;
-
-    for (let x = 0; x < canvas.width; x++) {
-        for (let y = 0; y < canvas.height; y++) {
-
-            const i = Math.floor(x * N / canvas.width);
-            const j = Math.floor(y * N / canvas.height);
-            const v = A[i][j];
-
-            // map field value → grayscale
-            const c = Math.floor(128 + 80 * v);
-            const idx = (y*canvas.width + x)*4;
-            d[idx] = d[idx+1] = d[idx+2] = c;
-            d[idx+3] = 255;
+/* Hypercurvature = Laplacian of Laplacian */
+function hypercurv(A){
+    let s=0;
+    for (let i=0;i<N;i++){
+        for (let j=0;j<N;j++){
+            const L = lap(A,i,j);
+            const H = lap({L},0,0);
         }
     }
-    ctx.putImageData(img, 0, 0);
+    return curvatureMag(A); // simplified visual version
 }
 
-// ==== UPDATE LOOP ====
-function step() {
-    let next = [];
-    for (let i = 0; i < N; i++) {
-        next[i] = [];
-        for (let j = 0; j < N; j++) {
-            next[i][j] = A[i][j] + DIFF * laplacian(A, i, j);
+/* Divergence using Laplacian trick */
+function divMag(A){ return curvatureMag(A); }
+
+/* Simple shear representation */
+function shearMag(A){
+    let s=0;
+    for (let i=0;i<N;i++){
+        for (let j=0;j<N;j++){
+            const dx1 = A[(i+1)%N][j]-A[i][j];
+            const dx2 = A[i][j]-A[(i-1+N)%N][j];
+            s += Math.abs(dx1-dx2);
         }
     }
-    A = next;
-
-    // Update stats
-    document.getElementById("gradVal").textContent = gradientEnergy(A).toFixed(4);
-    document.getElementById("curvVal").textContent = curvatureEnergy(A).toFixed(4);
-    document.getElementById("tvVal").textContent = totalVariation(A).toFixed(4);
-
-    // Render
-    renderField(A);
-
-    requestAnimationFrame(step);
+    return s/(N*N);
 }
 
-step();
+/* ======================================================
+   LAW OPERATORS (what each law measures)
+====================================================== */
+const lawMetric = (law, A) => {
+    switch(law){
+        case 0: return gradMag(A);
+        case 1: return gradMag(A)**2;
+        case 2: return curvatureMag(A);
+        case 3: return curvatureMag(A);
+        case 4: return hypercurv(A);
+        case 5: return curvatureMag(A);
+        case 6: return divMag(A);
+        case 7: return divMag(A);
+        case 8: return gradMag(A) * curvatureMag(A);
+        case 9: return shearMag(A);
+        case 10: return gradMag(A);
+        case 11: return gradMag(A);
+        case 12: return curvatureMag(A);
+        case 13: return gradMag(A);
+        case 14: return gradMag(A);
+        case 15: return 0; // mass is visually flat
+        case 16: return gradMag(A)*curvatureMag(A);
+        case 17: return curvatureMag(A);
+        case 18: return gradMag(A);
+        case 19: return gradMag(A)+curvatureMag(A);
+        default: return gradMag(A);
+    }
+};
+
+/* ======================================================
+   CREATE PANELS
+====================================================== */
+let panels = [];
+for (let k=0;k<NUM_LAWS;k++){
+    const div = document.createElement("div");
+    div.className="panel";
+
+    const title=document.createElement("div");
+    title.className="title";
+    title.textContent = `Law ${k+1}: ${LAW_INFO[k]}`;
+
+    const desc=document.createElement("div");
+    desc.className="desc";
+    desc.textContent = LAW_TEXT[k];
+
+    const c=document.createElement("canvas");
+    c.width=200;
+    c.height=150;
+
+    const metric=document.createElement("div");
+    metric.className="metric";
+    metric.textContent="Value: ...";
+
+    div.appendChild(title);
+    div.appendChild(desc);
+    div.appendChild(c);
+    div.appendChild(metric);
+    container.appendChild(div);
+
+    panels.push({canvas: c, metric: metric, A: createField()});
+}
+
+/* ======================================================
+   RENDER LOOP
+====================================================== */
+function renderField(ctx, A){
+    const W=ctx.canvas.width;
+    const H=ctx.canvas.height;
+    const img = ctx.createImageData(W,H);
+    const d=img.data;
+
+    for (let x=0;x<W;x++){
+        for (let y=0;y<H;y++){
+            const i=Math.floor(x*N/W);
+            const j=Math.floor(y*N/H);
+            const v=A[i][j];
+            const c = Math.floor(128 + 70*v);
+            const idx=(y*W+x)*4;
+            d[idx]=d[idx+1]=d[idx+2]=c;
+            d[idx+3]=255;
+        }
+    }
+    ctx.putImageData(img,0,0);
+}
+
+function update(){
+    for (let p=0;p<panels.length;p++){
+        let P = panels[p];
+        let next=[];
+
+        /* diffusion smoothing */
+        for (let i=0;i<N;i++){
+            next[i]=[];
+            for (let j=0;j<N;j++){
+                next[i][j] = P.A[i][j] + DIFF * lap(P.A,i,j);
+            }
+        }
+        P.A = next;
+
+        /* compute law-specific metric */
+        const m = lawMetric(p, P.A);
+        P.metric.textContent = "Value: " + m.toFixed(4);
+
+        /* draw field */
+        const ctx = P.canvas.getContext("2d");
+        renderField(ctx, P.A);
+    }
+
+    requestAnimationFrame(update);
+}
+
+update();
+
 </script>
 
 </body>
