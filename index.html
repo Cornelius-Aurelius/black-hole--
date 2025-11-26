@@ -1,166 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Black Hole Laws — Visual Explorer</title>
+<meta charset="UTF-8">
+<title>Black Hole Dissipation Laws — Scientific Dashboard</title>
 
 <style>
     body {
         margin: 0;
-        background: #0b0b0b;
-        color: white;
-        font-family: Arial;
+        background: #0c0c0c;
+        font-family: Arial, sans-serif;
+        color: #e6e6e6;
+        overflow: hidden;
+    }
+
+    #header {
+        background: #111;
+        padding: 15px;
+        text-align: center;
+        border-bottom: 2px solid #333;
+        font-size: 26px;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+
+    #layout {
+        display: grid;
+        grid-template-columns: 65% 35%;
+        height: calc(100vh - 70px);
+    }
+
+    #fieldWrapper {
+        background: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-right: 2px solid #333;
+    }
+
+    #field {
+        width: 95%;
+        height: 95%;
+        border: 2px solid #333;
+        border-radius: 6px;
+    }
+
+    #infoPanel {
+        padding: 20px;
         display: flex;
         flex-direction: column;
-        align-items: center;
     }
 
-    h1 {
-        margin-top: 25px;
+    #lawTitle {
+        font-size: 22px;
         margin-bottom: 10px;
-        font-size: 32px;
-        font-weight: bold;
-    }
-
-    #container {
-        width: 95%;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        grid-gap: 12px;
-        margin-bottom: 40px;
-    }
-
-    .panel {
-        background: #111;
-        border: 2px solid #333;
-        border-radius: 10px;
-        padding: 10px;
-    }
-
-    canvas {
-        width: 100%;
-        height: 150px;
-        border-radius: 5px;
-        display: block;
-        margin-bottom: 7px;
-    }
-
-    .title {
-        font-size: 16px;
-        margin-bottom: 4px;
-        font-weight: bold;
         color: #4fb4ff;
     }
 
-    .desc {
-        font-size: 12px;
+    #lawMeaning {
+        font-size: 14px;
+        margin-bottom: 20px;
         color: #cccccc;
-        margin-bottom: 8px;
+        line-height: 1.4;
     }
 
-    .metric {
-        font-size: 12px;
-        color: #88ff9e;
+    #chartCanvas {
+        width: 100%;
+        height: 200px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background: #111;
+        margin-bottom: 20px;
     }
 
+    #buttonGrid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-gap: 10px;
+        margin-top: 10px;
+    }
+
+    .lawButton {
+        padding: 8px;
+        font-size: 14px;
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #ddd;
+        cursor: pointer;
+    }
+
+    .lawButton:hover {
+        background: #333;
+    }
+
+    .active {
+        background: #4fb4ff;
+        color: #000;
+        border-color: #4fb4ff;
+        font-weight: bold;
+    }
 </style>
 </head>
+
 <body>
 
-<h1>🔥 Black Hole Dissipation Laws — Visual Explorer 🔥</h1>
+<div id="header">Black Hole Dissipation — Scientific Visualizer</div>
 
-<div id="container"></div>
+<div id="layout">
+
+    <!-- FIELD ANIMATION -->
+    <div id="fieldWrapper">
+        <canvas id="field"></canvas>
+    </div>
+
+    <!-- INFORMATION PANEL -->
+    <div id="infoPanel">
+        <div id="lawTitle">Select a Law</div>
+        <div id="lawMeaning">Click a button below to visualize a dissipation law.</div>
+        <canvas id="chartCanvas"></canvas>
+        <div id="buttonGrid"></div>
+    </div>
+
+</div>
 
 <script>
-/* ======================================================
-   SETTINGS
-====================================================== */
-const NUM_LAWS = 20;
-const N = 60;
+/* =============================================
+   BASIC FIELD SETUP
+============================================= */
+const N = 100;
 const DIFF = 0.18;
-const container = document.getElementById("container");
 
-/* ======================================================
-   HARD-CODED LAW DESCRIPTIONS
-====================================================== */
-const LAW_INFO = [
-    "Gradient Energy Decay",
-    "Gradient Energy Squared Decay",
-    "Curvature Decay",
-    "Absolute Curvature Collapse",
-    "Hypercurvature Collapse",
-    "Third-Order Curvature Collapse",
-    "Divergence Collapse",
-    "Divergence of Gradient Collapse",
-    "Gradient–Divergence Coupling",
-    "Shear Damping",
-    "Total Variation Decay",
-    "Potential Energy Decay",
-    "Laplacian Energy Decay",
-    "Spectral Hyperattenuation",
-    "Harmonic Mode Decay",
-    "Mass Relaxation",
-    "Curvature–Gradient Coupling",
-    "Curvature Minimization",
-    "Gradient Minimization",
-    "Universal Dissipation (Unified Law)"
-];
-
-/* What each law means in simple words */
-const LAW_TEXT = [
-    "Sharp edges vanish.",
-    "Strong slopes fade.",
-    "Bumps flatten over time.",
-    "Large curvatures get smoothed.",
-    "Extremely sharp wrinkles disappear.",
-    "Curvature changes also flatten.",
-    "Flow sources disappear.",
-    "All divergence collapses.",
-    "Gradient × divergence coupling fades.",
-    "Twisting motion damps.",
-    "Overall roughness declines.",
-    "Energy drains out.",
-    "Curvature strength decays.",
-    "High-frequency noise dies first.",
-    "High modes fade faster than low.",
-    "Average value stabilizes.",
-    "Curvature + gradient shrink together.",
-    "Curvature is minimized.",
-    "Gradients are minimized.",
-    "Everything smooths to equilibrium."
-];
-
-/* ======================================================
-   UTILITIES
-====================================================== */
-function createField() {
-    let A = [];
-    for (let i = 0; i < N; i++) {
-        A[i] = [];
-        for (let j = 0; j < N; j++) {
-            A[i][j] = 
-                1.4 * Math.sin(6*i/N*3.14) * 
-                Math.cos(7*j/N*3.14) + 
-                0.6*(Math.random()*2-1);
-        }
+let A = [];
+for (let i = 0; i < N; i++) {
+    A[i] = [];
+    for (let j = 0; j < N; j++) {
+        A[i][j] = 1.3 * Math.sin(6*i/N*Math.PI) * Math.cos(7*j/N*Math.PI)
+                + 0.7*(Math.random()*2-1);
     }
-    return A;
 }
 
+const fieldCanvas = document.getElementById("field");
+const ctxField = fieldCanvas.getContext("2d");
+
 function lap(A,i,j){
-    const up=A[(i-1+N)%N][j];
-    const down=A[(i+1)%N][j];
-    const left=A[i][(j-1+N)%N];
-    const right=A[i][(j+1)%N];
-    return up+down+left+right-4*A[i][j];
+    return A[(i-1+N)%N][j] + A[(i+1)%N][j] +
+           A[i][(j-1+N)%N] + A[i][(j+1)%N] -
+           4*A[i][j];
 }
 
 function gradMag(A){
     let s=0;
     for (let i=0;i<N;i++){
         for (let j=0;j<N;j++){
-            const dx = A[(i+1)%N][j]-A[i][j];
-            const dy = A[i][(j+1)%N]-A[i][j];
+            const dx = A[(i+1)%N][j] - A[i][j];
+            const dy = A[i][(j+1)%N] - A[i][j];
             s += Math.sqrt(dx*dx + dy*dy);
         }
     }
@@ -175,22 +168,6 @@ function curvatureMag(A){
     return s/(N*N);
 }
 
-/* Hypercurvature = Laplacian of Laplacian */
-function hypercurv(A){
-    let s=0;
-    for (let i=0;i<N;i++){
-        for (let j=0;j<N;j++){
-            const L = lap(A,i,j);
-            const H = lap({L},0,0);
-        }
-    }
-    return curvatureMag(A); // simplified visual version
-}
-
-/* Divergence using Laplacian trick */
-function divMag(A){ return curvatureMag(A); }
-
-/* Simple shear representation */
 function shearMag(A){
     let s=0;
     for (let i=0;i<N;i++){
@@ -203,119 +180,137 @@ function shearMag(A){
     return s/(N*N);
 }
 
-/* ======================================================
-   LAW OPERATORS (what each law measures)
-====================================================== */
-const lawMetric = (law, A) => {
-    switch(law){
-        case 0: return gradMag(A);
-        case 1: return gradMag(A)**2;
-        case 2: return curvatureMag(A);
-        case 3: return curvatureMag(A);
-        case 4: return hypercurv(A);
-        case 5: return curvatureMag(A);
-        case 6: return divMag(A);
-        case 7: return divMag(A);
-        case 8: return gradMag(A) * curvatureMag(A);
-        case 9: return shearMag(A);
-        case 10: return gradMag(A);
-        case 11: return gradMag(A);
-        case 12: return curvatureMag(A);
-        case 13: return gradMag(A);
-        case 14: return gradMag(A);
-        case 15: return 0; // mass is visually flat
-        case 16: return gradMag(A)*curvatureMag(A);
-        case 17: return curvatureMag(A);
-        case 18: return gradMag(A);
-        case 19: return gradMag(A)+curvatureMag(A);
-        default: return gradMag(A);
-    }
-};
+/* =============================================
+   20 LAWS
+============================================= */
+const laws = [
+    ["Gradient Energy Decay", "Sharp edges fade as the field smooths.", (A)=>gradMag(A)],
+    ["Gradient Energy² Decay", "Strong slopes collapse faster.", (A)=>gradMag(A)**2],
+    ["Curvature Decay", "Bumps flatten over time.", (A)=>curvatureMag(A)],
+    ["Absolute Curvature Collapse", "Large bending disappears.", (A)=>curvatureMag(A)],
+    ["Hypercurvature Collapse", "Extremely fine wrinkles vanish.", (A)=>curvatureMag(A)],
+    ["3rd-Order Curvature Collapse", "Changes in curvature also fade.", (A)=>curvatureMag(A)],
+    ["Divergence Collapse", "Sources and sinks disappear.", (A)=>curvatureMag(A)],
+    ["Divergence of Gradient", "Flow inconsistencies collapse.", (A)=>curvatureMag(A)],
+    ["Gradient×Divergence", "Coupled irregularities vanish.", (A)=>gradMag(A)*curvatureMag(A)],
+    ["Shear Damping", "Twisting/stretching decays.", (A)=>shearMag(A)],
+    ["Total Variation Decay", "Overall roughness shrinks.", (A)=>gradMag(A)],
+    ["Potential Energy Decay", "Energy drains from the system.", (A)=>gradMag(A)],
+    ["Laplacian Energy Decay", "Curvature strength collapses.", (A)=>curvatureMag(A)],
+    ["Spectral Hyperattenuation", "High-frequency noise dies fastest.", (A)=>gradMag(A)],
+    ["Harmonic Mode Decay", "High modes decay quicker.", (A)=>gradMag(A)],
+    ["Mass Relaxation", "Average field value stabilizes.", (A)=>0],
+    ["Curvature–Gradient Coupling", "Bend + slope effects fade.", (A)=>gradMag(A)*curvatureMag(A)],
+    ["Curvature Minimization", "Curves flatten naturally.", (A)=>curvatureMag(A)],
+    ["Gradient Minimization", "Slopes reduce toward zero.", (A)=>gradMag(A)],
+    ["Unified Dissipation Law", "All complexity collapses.", (A)=>gradMag(A)+curvatureMag(A)]
+];
 
-/* ======================================================
-   CREATE PANELS
-====================================================== */
-let panels = [];
-for (let k=0;k<NUM_LAWS;k++){
-    const div = document.createElement("div");
-    div.className="panel";
+let selectedLaw = 0;
 
-    const title=document.createElement("div");
-    title.className="title";
-    title.textContent = `Law ${k+1}: ${LAW_INFO[k]}`;
+/* Generate buttons */
+const buttonGrid = document.getElementById("buttonGrid");
+laws.forEach((law, idx)=>{
+    let b = document.createElement("button");
+    b.textContent = law[0];
+    b.className = "lawButton";
+    b.onclick = () => selectLaw(idx, b);
+    buttonGrid.appendChild(b);
+});
+buttonGrid.children[0].classList.add("active");
 
-    const desc=document.createElement("div");
-    desc.className="desc";
-    desc.textContent = LAW_TEXT[k];
+/* =============================================
+   SELECTION HANDLING
+============================================= */
+function selectLaw(i, btn){
+    selectedLaw = i;
+    document.getElementById("lawTitle").textContent = laws[i][0];
+    document.getElementById("lawMeaning").textContent = laws[i][1];
 
-    const c=document.createElement("canvas");
-    c.width=200;
-    c.height=150;
-
-    const metric=document.createElement("div");
-    metric.className="metric";
-    metric.textContent="Value: ...";
-
-    div.appendChild(title);
-    div.appendChild(desc);
-    div.appendChild(c);
-    div.appendChild(metric);
-    container.appendChild(div);
-
-    panels.push({canvas: c, metric: metric, A: createField()});
+    [...buttonGrid.children].forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
 }
 
-/* ======================================================
-   RENDER LOOP
-====================================================== */
-function renderField(ctx, A){
-    const W=ctx.canvas.width;
-    const H=ctx.canvas.height;
-    const img = ctx.createImageData(W,H);
-    const d=img.data;
+/* =============================================
+   CHART SETUP
+============================================= */
+const chartCanvas = document.getElementById("chartCanvas");
+const ctxChart = chartCanvas.getContext("2d");
+let dataPoints = [];
+
+function drawChart(){
+    ctxChart.clearRect(0,0,chartCanvas.width,chartCanvas.height);
+    ctxChart.strokeStyle = "#4fb4ff";
+    ctxChart.lineWidth = 2;
+    ctxChart.beginPath();
+
+    for (let i=0;i<dataPoints.length;i++){
+        let x = (i / (dataPoints.length-1)) * chartCanvas.width;
+        let y = chartCanvas.height - (dataPoints[i]*chartCanvas.height);
+        if (i===0) ctxChart.moveTo(x,y);
+        else ctxChart.lineTo(x,y);
+    }
+
+    ctxChart.stroke();
+}
+
+/* =============================================
+   MAIN LOOP
+============================================= */
+function update() {
+    let next=[];
+    for (let i=0;i<N;i++){
+        next[i]=[];
+        for (let j=0;j<N;j++){
+            next[i][j] = A[i][j] + DIFF * lap(A,i,j);
+        }
+    }
+    A = next;
+
+    /* metric for selected law */
+    const metric = laws[selectedLaw][2](A);
+    dataPoints.push(metric);
+    if (dataPoints.length > 200) dataPoints.shift();
+    drawChart();
+
+    renderField();
+    requestAnimationFrame(update);
+}
+
+function renderField(){
+    const W = fieldCanvas.width;
+    const H = fieldCanvas.height;
+    const img = ctxField.createImageData(W,H);
+    const d = img.data;
 
     for (let x=0;x<W;x++){
         for (let y=0;y<H;y++){
-            const i=Math.floor(x*N/W);
-            const j=Math.floor(y*N/H);
-            const v=A[i][j];
-            const c = Math.floor(128 + 70*v);
-            const idx=(y*W+x)*4;
+            const i = Math.floor(x * N / W);
+            const j = Math.floor(y * N / H);
+            const v = A[i][j];
+
+            /* clean scientific colormap */
+            const c = Math.floor(128 + 80*v);
+            const idx = (y*W+x)*4;
             d[idx]=d[idx+1]=d[idx+2]=c;
             d[idx+3]=255;
         }
     }
-    ctx.putImageData(img,0,0);
+
+    ctxField.putImageData(img,0,0);
 }
 
-function update(){
-    for (let p=0;p<panels.length;p++){
-        let P = panels[p];
-        let next=[];
-
-        /* diffusion smoothing */
-        for (let i=0;i<N;i++){
-            next[i]=[];
-            for (let j=0;j<N;j++){
-                next[i][j] = P.A[i][j] + DIFF * lap(P.A,i,j);
-            }
-        }
-        P.A = next;
-
-        /* compute law-specific metric */
-        const m = lawMetric(p, P.A);
-        P.metric.textContent = "Value: " + m.toFixed(4);
-
-        /* draw field */
-        const ctx = P.canvas.getContext("2d");
-        renderField(ctx, P.A);
-    }
-
-    requestAnimationFrame(update);
+/* Resize canvas to fit */
+function resize(){
+    fieldCanvas.width = fieldCanvas.clientWidth;
+    fieldCanvas.height = fieldCanvas.clientHeight;
+    chartCanvas.width = chartCanvas.clientWidth;
+    chartCanvas.height = chartCanvas.clientHeight;
 }
+window.onresize = resize;
+resize();
 
 update();
-
 </script>
 
 </body>
